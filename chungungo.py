@@ -28,9 +28,9 @@ import os
 
 splash_screen()
 
-os.environ['PATH'] = 'R-4.0.3patched/bin/x64' + os.pathsep + os.environ['PATH']
+os.environ['PATH'] = 'R/bin/x64' + os.pathsep + os.environ['PATH']
 print(os.environ['PATH'])
-os.environ['R_HOME'] = 'R-4.0.3patched/'
+os.environ['R_HOME'] = 'R/'
 
 # R modules-------------------------------------------
 
@@ -53,7 +53,6 @@ NoneType = type(None)
 dataframe_original = 0
 menudisabled = "disabled"
 filedir = '/'
-c = 0
 
 # Start write html
 
@@ -69,7 +68,7 @@ def open_web():
             f.write(x)
         f.close()
     webview.create_window('Reporte', 'preview.html')
-    webview.start()
+    webview.start(gui='mshtml')
     return
 
 
@@ -182,14 +181,13 @@ def dificultad_tct():
         item_analysis = importr('ShinyItemAnalysis')
         as_null = ro.r['as.null']
         table = item_analysis.ItemAnalysis(data(scores), y=as_null(), k=4, l=1, u=4, add_bin=FALSE)
-        print(table)
         writer(table, 'filetempo')
         df_diff = pd.read_csv('filetempo')
-        df_diff.rename(columns={'avgScore': 'Grado Dif.', 'SD': 'Desv. por Item',
+        df_diff.rename(columns={'Unnamed: 0':'Item', 'avgScore': 'Dificultad', 'SD': 'Desv. por Item',
                                 'ULI': 'Indice de Discr.', 'RIR': 'Coef. Discr.'}, inplace=True)
-        print(df_diff[['Grado Dif.', 'Desv. por Item', 'Indice de Discr.', 'Coef. Discr.']])
+        print(df_diff[['Item', 'Dificultad', 'Desv. por Item', 'Indice de Discr.', 'Coef. Discr.']])
         buf.truncate(0)
-        df_diff[['Grado Dif.', 'Desv. por Item', 'Indice de Discr.', 'Coef. Discr.']].to_html(buf)
+        df_diff[['Item', 'Dificultad', 'Desv. por Item', 'Indice de Discr.', 'Coef. Discr.']].to_html(buf)
         text = buf.getvalue()
         test.write('<hr>' + '<br><h2>Dificultad y Discriminación<h2>' + text + '<hr>')
         messagebox.showinfo(master=difficult_window, message="Diff y Disc Listo", title="Mensaje")
@@ -198,7 +196,8 @@ def dificultad_tct():
 
     open_datatable()
     global vars
-    difficult_window = ClassToplevel()
+    difficult_window = tk.Toplevel()
+    ClassToplevel(difficult_window)
     difficult_window.geometry('500x280')
     difficult_window.title('Dificultad y Discriminación')
     apply_button = tk.Button(difficult_window, text="Aplicar", command=difficult_function, state='disabled')
@@ -253,7 +252,7 @@ def irt_rasch():
         model = ltm.rasch(scores, IRT_param=True)
         coef = robjects.r['coef']
         plot = robjects.r['plot']
-        coeff = coef(model, prob=True, order=True)
+        coeff = coef(model, prob=True, order=False)
         grdevices.png('file.png', width=512, height=512)
         plot(model, type='ICC')
         grdevices.dev_off()
@@ -314,7 +313,7 @@ def irt_rasch():
         plot_ltm(model, type='ICC')
         grdevices.dev_off()
         encoded = base64.b64encode(open("file.png", "rb").read()).decode('utf-8')
-        coeff = coef(model, prob=True, order=True)
+        coeff = coef(model, prob=True, order=False)
         writer(coeff, 'filetempo')
         df_irt = pd.read_csv('filetempo')
         print(df_irt)
@@ -330,7 +329,8 @@ def irt_rasch():
         return
 
     open_datatable()
-    analysis_rasch_window = Toplevel(root)
+    analysis_rasch_window = tk.Toplevel()
+    ClassToplevel(analysis_rasch_window)
     analysis_rasch_window.geometry('500x280')
     analysis_rasch_window.title('Análisis IRT')
     apply_button = tk.Button(analysis_rasch_window, state='disabled', text="Aplicar",
@@ -432,7 +432,8 @@ def alpha_cronbach():
 
     open_datatable()
     global vars
-    alpha_window = ClassToplevel()
+    alpha_window = tk.Toplevel()
+    ClassToplevel(alpha_window)
     alpha_window.geometry('500x280')
     alpha_window.title('Análisis')
     apply_button = tk.Button(alpha_window, text="Aplicar", command=function_alpha)
@@ -517,7 +518,8 @@ def analysis_splithalf():
 
     open_datatable()
     global vars
-    window_splithalf = ClassToplevel(root)
+    window_splithalf = tk.Toplevel()
+    ClassToplevel(window_splithalf)
     window_splithalf.geometry('500x250')
     window_splithalf.title('Análisis dos mitades')
     apply_button = tk.Button(window_splithalf, text="Aplicar", command=splithalf_function, state="disabled")
@@ -596,16 +598,18 @@ def transform_data():
                 print('temporal', temporal)
                 open_datatable()
                 for column in select_column:
-                    global c
-                    c = c + 1
-                    dataframe_table['copy_%d(%s)' % (c, column)] = temporal[column].values
+                    for c in range(len(list(dataframe_table))):
+                        if not 'copy_%d(%s)' % (c, column) in dataframe_table:
+                            dataframe_table['copy_%d(%s)' % (c, column)] = temporal[column].values
+                            break
                 print(dataframe_table)
                 buffer = dataframe_table.to_dict('index')
                 app = MyTable(frame, data=buffer)
                 app.redrawTable()
             tk.messagebox.showinfo(title='Transformar', message='Datos transformados')
 
-        cuali_window = ClassToplevel()
+        cuali_window = tk.Toplevel()
+        ClassToplevel(cuali_window)
         input_window.title('Reemplazar valores')
         input_window.geometry('500x500')
         select_column = []
@@ -634,7 +638,8 @@ def transform_data():
         return
 
     open_datatable()
-    input_window = ClassToplevel()
+    input_window = tk.Toplevel()
+    ClassToplevel(input_window)
     input_window.title('Transformar Data')
     input_window.geometry('800x500')
     var_replace = IntVar()
@@ -660,7 +665,8 @@ def transform_data():
 
 # --------------------------------------------------------------------------------------------------
 def about_chungungo():
-    about_window = ClassToplevel(root)
+    about_window = tk.Toplevel()
+    ClassToplevel(about_window)
     about_window.overrideredirect(True)
     about_window.configure(bg='#ebe8e3')
     # Gets both half the screen width/height and window width/height
@@ -678,7 +684,7 @@ def about_chungungo():
     tk.Label(about_window, bg='#ebe8e3', text=f'Versión: {version}', font='Arial 9').grid(row=1, column=3)
     tk.Label(about_window, bg='#ebe8e3', text=s, font='Arial 9', justify=LEFT,
              wraplength=350).grid(row=2, column=0, columnspan=4, rowspan=3)
-    tk.Button(about_window, bg='#ebe8e3', text="Aceptar", command=about_window.activate_root).grid(row=5, column=3)
+    tk.Button(about_window, bg='#ebe8e3', text="Aceptar", command=about_window.destroy).grid(row=5, column=3)
     about_window.resizable(0, 0)
     about_window.mainloop()
 
@@ -791,24 +797,18 @@ def closechungungo():
 
 
 # ---------------------------------------------------------
-class ClassToplevel(tk.Toplevel):
 
-    def __init__(self, *args, **kwargs):
-        tk.Toplevel.__init__(self, *args, **kwargs)
-        root.wm_attributes("-disabled", True)
-        self.lift()
-        self.protocol('WM_DELETE_WINDOW', self.activate_root)
 
-    def activate_root(self):
-        self.destroy()
-        root.wm_attributes("-disabled", False)
-        root.lift()
-
+class ClassToplevel:
+    def __init__(self, master):
+        self.master = master
+        self.master.focus()
+        self.master.grab_set()
 
 # ----------------------------------------------------------------------------------------------------------------
 # creating tkinter window and define property--------------------------------------------------------------------
 destroy_splash()
-root = Tk()
+root = tk.Tk()
 root.iconphoto(False, tk.PhotoImage(
     data='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'))
 frame = Frame(root)
@@ -871,4 +871,4 @@ root.lift()
 root.attributes('-topmost', True)
 root.after_idle(root.attributes, '-topmost', False)
 app = MyTable(frame)
-app.mainloop()
+root.mainloop()
