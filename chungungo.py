@@ -32,7 +32,7 @@ os.environ['PATH'] = 'R/bin/x64' + os.pathsep + os.environ['PATH']
 print(os.environ['PATH'])
 os.environ['R_HOME'] = 'R/'
 
-# R modules-------------------------------------------
+# R modules needs environ set-------------------------------------------
 
 import rpy2.robjects as ro
 from rpy2.robjects.conversion import localconverter
@@ -76,7 +76,7 @@ def open_web():
 def open_datatable():
     global dataframe_table
     app.exportTable()
-    dataframe_table = pd.read_csv('tempCSV', encoding="Latin-1", dtype=str)
+    dataframe_table = pd.read_csv('tempCSV', encoding="Latin-1", dtype=str, index_col=[0])
     if os.path.exists('tempCSV'):
         remove('tempCSV')
     return
@@ -105,12 +105,13 @@ def open_file():
 
 def open_file2():
     global filedir
-    filename_excel = filedialog.askopenfilename(initialdir=filedir, title="Select file",
+    filename_excel = filedialog.askopenfilename(initialdir=filedir, title="Abrir Archivo",
                                                 filetypes=(("excel files", "*.xls"), ("excel files", "*.xlsx")))
     filedir = os.path.dirname(filename_excel)
     if filename_excel:
         global dataframe_original
-        dataframe_original = pd.read_excel(filename_excel, dtype=str)
+        dataframe_original = pd.read_excel(filename_excel, dtype=str, index_col=[0])
+        print(dataframe_original)
         # copy Excel  #fix missing data
         dataframe_original = dataframe_original.replace(np.nan, "NaN")
         buffer = dataframe_original.to_dict('index')
@@ -140,7 +141,7 @@ def save_excel():
 # Guardar reporte
 def save_html():
     report_file = filedialog.asksaveasfilename(initialdir=filedir, title="Guardar Reporte",
-                                               filetypes=[("html", "*.html")], defaultextension='.html')
+                                               filetypes=[("Archivo html", "*.html")], defaultextension='.html')
     if report_file:
         with open(report_file, 'w') as f:
             test.seek(0)
@@ -166,7 +167,6 @@ def dificultad_tct():
         return
 
     def difficult_function():
-        global vars
         column_selected = []
         for i in range(len(vars)):
             if vars[i][0].get() == 1:
@@ -183,7 +183,7 @@ def dificultad_tct():
         table = item_analysis.ItemAnalysis(data(scores), y=as_null(), k=4, l=1, u=4, add_bin=FALSE)
         writer(table, 'filetempo')
         df_diff = pd.read_csv('filetempo')
-        df_diff.rename(columns={'Unnamed: 0':'Item', 'avgScore': 'Dificultad', 'SD': 'Desv. por Item',
+        df_diff.rename(columns={'Unnamed: 0': 'Item', 'avgScore': 'Dificultad', 'SD': 'Desv. por Item',
                                 'ULI': 'Indice de Discr.', 'RIR': 'Coef. Discr.'}, inplace=True)
         print(df_diff[['Item', 'Dificultad', 'Desv. por Item', 'Indice de Discr.', 'Coef. Discr.']])
         buf.truncate(0)
@@ -195,7 +195,6 @@ def dificultad_tct():
         return
 
     open_datatable()
-    global vars
     difficult_window = tk.Toplevel()
     ClassToplevel(difficult_window)
     difficult_window.geometry('500x280')
@@ -206,10 +205,7 @@ def dificultad_tct():
     info_label = tk.Label(difficult_window, wraplength=270, justify=LEFT,
                           text='Grado de dificultad por item, indice de discriminación y coeficiente de discriminación')
     info_label.grid(row=1, column=1, columnspan=4, rowspan=3)
-    apply_button.grid(row=6, column=4, sticky=S)
-    difficult_window.grid_columnconfigure(0, weight=1)
-    difficult_window.grid_columnconfigure(5, weight=1)
-    difficult_window.resizable(0, 0)
+    apply_button.grid(row=6, column=8, sticky=W)
     checklist = scrolledtext.ScrolledText(difficult_window, height=10, width=20, cursor='arrow', background='white')
     checklist.grid(row=0, column=8, rowspan=4)
     vars = []
@@ -238,6 +234,7 @@ def irt_rasch():
         return
 
     def rasch_function():
+        analysis_rasch_window.config(cursor='wait')
         column_selected = []
         for i in range(len(vars)):
             if vars[i][0].get() == 1:
@@ -259,7 +256,7 @@ def irt_rasch():
         encoded = base64.b64encode(open("file.png", "rb").read()).decode('utf-8')
 
         fscores = ltm.factor_scores(model, resp_patterns=scores)
-        theta = fscores[0].rx(True,'z1')
+        theta = fscores[0].rx(True, 'z1')
         b = coeff.rx(True, 'Dffclt')
         print(theta, b)
         wright = sia.ggWrightMap(theta, b)
@@ -275,6 +272,7 @@ def irt_rasch():
         writer(coeff, 'filetempo')
         df_rasch = pd.read_csv('filetempo')
         print(df_rasch)
+        df_rasch.rename(columns={'Unnamed: 0': 'Item'}, inplace=True)
         buf.truncate(0)
         df_rasch.to_html(buf)
         text = buf.getvalue()
@@ -288,11 +286,13 @@ def irt_rasch():
         df_gof.to_html(buf)
         text = buf.getvalue()
         test.write('<hr>' + text + '<hr>')
+        analysis_rasch_window.config(cursor='')
         messagebox.showinfo(master=analysis_rasch_window, message="Rasch Listo", title="Mensaje")
         open_web()
         return
 
     def irt_function():
+        analysis_rasch_window.config(cursor='wait')
         column_selected = []
         for i in range(len(vars)):
             if vars[i][0].get() == 1:
@@ -303,6 +303,7 @@ def irt_rasch():
         grdevices = importr('grDevices')
         with localconverter(ro.default_converter + pandas2ri.converter):
             scores = ro.conversion.py2rpy(dataframe_rasch)
+        print(scores)
         fmla = Formula('scores ~ z1')
         env = fmla.environment
         env['scores'] = scores
@@ -317,6 +318,7 @@ def irt_rasch():
         writer(coeff, 'filetempo')
         df_irt = pd.read_csv('filetempo')
         print(df_irt)
+        df_irt.rename(columns={'Unnamed: 0': 'Item'}, inplace=True)
         buf.truncate(0)
         df_irt.to_html(buf)
         text = buf.getvalue()
@@ -324,14 +326,15 @@ def irt_rasch():
         test.write('<img src=\'data:image/png;base64,{}\'>'.format(encoded))
         remove('file.png')
         remove('filetempo')
-        messagebox.showinfo(master=analysis_rasch_window, message="IRT-2PL Listo", title="Mensaje")
+        analysis_rasch_window.config(cursor='')
+        messagebox.showinfo(message="IRT-2PL Listo", title="Mensaje")
         open_web()
         return
 
     open_datatable()
     analysis_rasch_window = tk.Toplevel()
     ClassToplevel(analysis_rasch_window)
-    analysis_rasch_window.geometry('500x280')
+    analysis_rasch_window.geometry('550x300')
     analysis_rasch_window.title('Análisis IRT')
     apply_button = tk.Button(analysis_rasch_window, state='disabled', text="Aplicar",
                              command=lambda: irt_function() if check_pl.get() else rasch_function())
@@ -339,12 +342,13 @@ def irt_rasch():
                                                                                                          column=1,
                                                                                                          columnspan=4)
     info_label = tk.Label(analysis_rasch_window, wraplength=270, justify=LEFT,
-                          text='Test IRT Rasch')
+                          text='Test IRT modelo Rasch de 1 - 2PL, al aplicar este test obtienes parámetro'
+                               ' Dificultad por item y en el caso de 2PL Discriminación, además de la probabilidad de '
+                               'responder correctamente dado Rasgo latente equilibrado. Se adjunta curva '
+                               'característica de item y mapa persona item.\n \n Seleccione entre 2PL y '
+                               'un 1PL')
     info_label.grid(row=1, column=1, columnspan=4, rowspan=3)
-    apply_button.grid(row=6, column=4, sticky=S)
-    analysis_rasch_window.grid_columnconfigure(0, weight=1)
-    analysis_rasch_window.grid_columnconfigure(5, weight=1)
-    analysis_rasch_window.resizable(0, 0)
+    apply_button.grid(row=6, column=8, sticky=W)
     checklist = scrolledtext.ScrolledText(analysis_rasch_window, height=10, width=20, cursor='arrow',
                                           background='white')
     checklist.grid(row=0, column=8, rowspan=4)
@@ -356,8 +360,8 @@ def irt_rasch():
         checklist.window_create("end", window=checkbutton)
         checklist.insert("end", "\n")
     check_pl = tk.IntVar()
-    checkbutton_pl = tk.Checkbutton(analysis_rasch_window, text='IRT-2PL (por defecto Rasch)', variable=check_pl)
-    checkbutton_pl.grid(row=4, column=1, columnspan=4)
+    checkbutton_pl = tk.Checkbutton(analysis_rasch_window, text='IRT-2PL (por defecto 1PL)', variable=check_pl)
+    checkbutton_pl.grid(row=6, column=1, columnspan=4, sticky=W)
     checklist.configure(state="disabled")
     analysis_rasch_window.mainloop()
     return
@@ -375,7 +379,6 @@ def alpha_cronbach():
         return
 
     def function_alpha():
-        global vars
         column_selected = []
         for i in range(len(vars)):
             if vars[i][0].get() == 1:
@@ -384,12 +387,15 @@ def alpha_cronbach():
         with localconverter(ro.default_converter + pandas2ri.converter):
             scores = ro.conversion.py2rpy(dataframe_alpha)
         ltm = importr('ltm')
-        data = ro.r('data.matrix')
+        sapply = ro.r('sapply')
+        data = ro.r('as.matrix')
+        as_numeric = ro.r('as.numeric')
         writer = robjects.r['write.csv']
-        print(data(scores))
+        datito = sapply(scores, as_numeric)
+        print('convertido a matrix', data(datito))
         item_analysis = importr('ShinyItemAnalysis')
         as_null = ro.r['as.null']
-        table = item_analysis.ItemAnalysis(data(scores), y=as_null(), k=4, l=1, u=4, add_bin=FALSE)
+        table = item_analysis.ItemAnalysis(data(datito), y=as_null(), k=4, l=1, u=4, add_bin=FALSE)
         print(table)
         alpha_table = ltm.cronbach_alpha(scores)
         print(alpha_table)
@@ -402,36 +408,36 @@ def alpha_cronbach():
                        'N de casos': [n[0]]}
         df_alphac = pd.DataFrame(list_alphac, columns=['Coeficiente Alpha Cronbach', 'N de item', 'N de casos'])
         # export df to html
-        if alpha[
-            0] < 0.6: interpretation = 'Alpha Cronbach se considera inaceptable, se recomienda revisar instrumento.'
-        if 0.6 <= alpha[
-            0] < 0.65: interpretation = 'Alpha Cronbach se considera indeseable, se recomienda revisar instrumento.'
-        if 0.65 <= alpha[
-            0] < 0.7: interpretation = 'Alpha Cronbach es minimamente aceptable. No es suficiente para tomar decisiones y' \
-                                       ' menos aun las que influyan en el futuro de las personas como' \
-                                       ' por ejemplo Test de Admisión'
-        if 0.7 <= alpha[
-            0] < 0.8: interpretation = 'Alpha Cronbach es suficientemente bueno para cualquier investigación. Deseable en ' \
-                                       'la mayoria de los casos (Ej: Test de habilidades)'
-        if 0.8 <= alpha[0] < 0.9: interpretation = 'Alpha Cronbach se considera muy buena.'
-        if 0.9 <= alpha[0]: interpretation = 'Alpha Cronbach es un nivel elevado de confiabilidad.'
+        if 0.6 <= alpha[0] < 0.65:
+            interpretation = 'Alpha Cronbach se considera indeseable, se recomienda revisar instrumento.'
+        elif 0.65 <= alpha[0] < 0.7:
+            interpretation = 'Alpha Cronbach es minimamente aceptable. No es suficiente para tomar decisiones y menos' \
+                             ' aun las que influyan en el futuro de las personas como por ejemplo Test de Admisión'
+        elif 0.7 <= alpha[0] < 0.8:
+            interpretation = 'Alpha Cronbach es suficientemente bueno para cualquier investigación. Deseable en la' \
+                             ' mayoria de los casos (Ej: Test de habilidades)'
+        elif 0.8 <= alpha[0] < 0.9:
+            interpretation = 'Alpha Cronbach se considera muy buena.'
+        elif 0.9 <= alpha[0]:
+            interpretation = 'Alpha Cronbach es un nivel elevado de confiabilidad.'
+        else:
+            interpretation = 'Alpha Cronbach se considera inaceptable, se recomienda revisar instrumento.'
         buf.truncate(0)
         df_alphac.to_html(buf)
         text = buf.getvalue()
         test.write('<hr>' + '<br><h2>Test de Confiabilidad Alpha Cronbach<h2>' + text + '<br><h3>Interpretación:<h3>'
                    + interpretation + '<hr>')
         writer(table, 'filetempo')
-        alpha_drop = pd.read_csv('filetempo')
+        alpha_drop = pd.read_csv('filetempo', index_col=[0])
         buf.truncate(0)
         alpha_drop[['alphaDrop']].to_html(buf)
         text = buf.getvalue()
         test.write('<hr>' + '<br><h2>Alpha Cronbach eliminando Item<h2>' + text + '<hr>')
-        messagebox.showinfo(master=alpha_window, message="Alpha Cronbach listo", title="Mensaje")
+        messagebox.showinfo(message="Alpha Cronbach listo", title="Mensaje")
         open_web()
         return
 
     open_datatable()
-    global vars
     alpha_window = tk.Toplevel()
     ClassToplevel(alpha_window)
     alpha_window.geometry('500x280')
@@ -443,15 +449,12 @@ def alpha_cronbach():
     info_label = tk.Label(alpha_window, wraplength=270, justify=LEFT,
                           text='Permite calcular el Alpha Cronbach de su instrumento.'
                                ' (Para ver su resultado e interpretación debe'
-                               ' "Guardar Reporte" en el menú Archivo).\n Selecciona las columnas de los item a analizar'
-                               ' los datos deben ser de tipo dicotómico, politómico o continuo. (El ingresar tablas con'
-                               ' datos no aceptados arrojará error).')
+                               ' "Guardar Reporte" en el menú Archivo).\n Selecciona las columnas de los item a '
+                               'analizar los datos deben ser de tipo dicotómico, politómico o continuo. (El ingresar'
+                               ' tablas con datos no aceptados arrojará error).')
     info_label.grid(row=1, column=1, columnspan=4, rowspan=3)
-    apply_button.grid(row=6, column=4, sticky=S)
+    apply_button.grid(row=6, column=8, sticky=W)
     apply_button.configure(state=DISABLED)
-    alpha_window.grid_columnconfigure(0, weight=1)
-    alpha_window.grid_columnconfigure(5, weight=1)
-    alpha_window.resizable(0, 0)
     checklist = scrolledtext.ScrolledText(alpha_window, height=10, width=20, cursor='arrow', background='white')
     checklist.grid(row=0, column=8, rowspan=4)
     vars = []
@@ -509,6 +512,7 @@ def analysis_splithalf():
         rulon = 1 - (dif_halfsplit.var(ddof=0) / score.var(ddof=0))
         scale = {'Conf. Spearman-Brown': [spearman], 'Conf. Rulón': [rulon]}
         df_scale = pd.DataFrame(scale, columns=['Conf. Spearman-Brown', 'Conf. Rulón'])
+        buf.truncate(0)
         df_scale.to_html(buf)
         text = buf.getvalue()
         test.write('<hr>' + '<br><h2>Método de dos partes<h2>' + text + '<hr>')
@@ -531,10 +535,7 @@ def analysis_splithalf():
     tk.Label(window_splithalf, text='Análisis de dos mitades', font='Arial 11 bold').grid(row=0, column=1,
                                                                                           columnspan=4)
     info_label.grid(row=1, column=1, columnspan=4, rowspan=3)
-    apply_button.grid(row=6, column=4, sticky=S)
-    window_splithalf.grid_columnconfigure(0, weight=1)
-    window_splithalf.grid_columnconfigure(5, weight=1)
-    window_splithalf.resizable(0, 0)
+    apply_button.grid(row=6, column=8, sticky=W)
     checklist = scrolledtext.ScrolledText(window_splithalf, height=10, width=20, cursor='arrow', background='white')
     checklist.grid(row=0, column=8, rowspan=4)
     vars = []
@@ -611,7 +612,7 @@ def transform_data():
         cuali_window = tk.Toplevel()
         ClassToplevel(cuali_window)
         input_window.title('Reemplazar valores')
-        input_window.geometry('500x500')
+        input_window.geometry('550x300')
         select_column = []
         for row in range(len(vars)):
             if vars[row][0].get() == 1:
@@ -641,10 +642,18 @@ def transform_data():
     input_window = tk.Toplevel()
     ClassToplevel(input_window)
     input_window.title('Transformar Data')
-    input_window.geometry('800x500')
+    input_window.geometry('500x300')
+    info_label = tk.Label(input_window, wraplength=270, justify=LEFT,
+                          text='Permite transformar los datos de las columnas seleccionadas. Selecciona las columnas'
+                               ' en el cuadro blanco y elige si deseas reemplazar las columnas originales por las '
+                               'transformadas. Por defecto se agregará una nueva columna de nombre Copy"numero"'
+                               '(nombre de la columna).')
+
+    tk.Label(input_window, text='Transformar datos', font='Arial 11 bold').grid(row=0, column=1, columnspan=4)
+    info_label.grid(row=1, column=1, columnspan=4, rowspan=3)
     var_replace = IntVar()
     checklist = scrolledtext.ScrolledText(input_window, height=10, width=20, cursor="arrow")
-    checklist.grid(row=0, column=0, columnspan=4, sticky=W)
+    checklist.grid(row=0, column=8, rowspan=4, columnspan=4, sticky=W)
     vars = []
     for column in dataframe_table:
         var = tk.IntVar()
@@ -653,11 +662,11 @@ def transform_data():
         checklist.window_create("end", window=checkbutton)
         checklist.insert("end", "\n")
     check_column = tk.Checkbutton(input_window, text="Reemplazar columnas", variable=var_replace)
-    check_column.grid(row=5, column=0, sticky=W)
+    check_column.grid(row=6, column=1, columnspan=4, sticky=W)
     check_column.configure(state="disabled")
     checklist.configure(state="disabled")
     assign_but = tk.Button(input_window, text="Asignar valores", command=cuali_replace)
-    assign_but.grid(row=5, column=4, sticky=W)
+    assign_but.grid(row=6, column=8, sticky=W)
     assign_but.configure(state="disabled")
     input_window.mainloop()
     return
@@ -684,8 +693,7 @@ def about_chungungo():
     tk.Label(about_window, bg='#ebe8e3', text=f'Versión: {version}', font='Arial 9').grid(row=1, column=3)
     tk.Label(about_window, bg='#ebe8e3', text=s, font='Arial 9', justify=LEFT,
              wraplength=350).grid(row=2, column=0, columnspan=4, rowspan=3)
-    tk.Button(about_window, bg='#ebe8e3', text="Aceptar", command=about_window.destroy).grid(row=5, column=3)
-    about_window.resizable(0, 0)
+    tk.Button(about_window, bg='#ebe8e3', text="Aceptar", command=about_window.destroy).grid(row=6, column=3)
     about_window.mainloop()
 
 
@@ -802,6 +810,11 @@ def closechungungo():
 class ClassToplevel:
     def __init__(self, master):
         self.master = master
+        self.master.resizable(0, 0)
+        self.master.grid_columnconfigure(0, weight=1)
+        self.master.grid_columnconfigure(5, weight=1)
+        self.master.grid_rowconfigure(5, weight=1)
+        self.master.grid_rowconfigure(7, weight=1)
         self.master.focus()
         self.master.grab_set()
 
