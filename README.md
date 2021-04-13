@@ -10,3 +10,13 @@ Psychometric Analysis
 - Transformar datos: Continuos y categóricos
 
 - Exportar resultados en HTML
+
+# Instalación:
+
+- Ir a la sección Releases de https://github.com/pgrozas/Item-Stats-Tools
+
+- Descargar archivo itemStatsTools.zip
+
+- Descomprimir el Zip
+
+- Abrir itemStatsTools.exe y empezar a usar
