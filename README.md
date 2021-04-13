@@ -1,6 +1,6 @@
 # Item-Stats-Tools
 Psychometric Analysis
-Manual de usuario https://github.com/pgrozas/Item-Stats-Tools/blob/master/Manual_de_usuario.pdf
+- Manual de usuario https://github.com/pgrozas/Item-Stats-Tools/blob/master/Manual_de_usuario.pdf
 
  Es un programa que busca acercar herramientas del análisis psicométrico a docentes. Permitiendoles realizar analisis bajo la teoría clásica de test (CTT) y la teoría de respuesta al item (IRT) de 1 y 2 PL.
 
