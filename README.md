@@ -16,8 +16,6 @@ Psychometric Analysis
 
 - Ir a la sección Releases de https://github.com/pgrozas/Item-Stats-Tools
 
-- Descargar archivo itemStatsTools.zip
+- Descargar la ultima versión disponible del instalador IST_setup.exe
 
-- Descomprimir el Zip
-
-- Abrir itemStatsTools.exe y empezar a usar
+- Seguir las instrucciones del instalador
